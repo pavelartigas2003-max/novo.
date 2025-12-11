@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Mini Avito</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{font-family:Arial;margin:0;padding:20px;background:#f7f7f7}
+.item{background:#fff;padding:12px;margin-bottom:15px;border-radius:10px;cursor:pointer}
+.item img{width:100%;border-radius:10px}
+.cat{padding:8px 12px;background:#fff;border-radius:20px;margin-right:10px;display:inline-block;margin-bottom:8px}
+.search{padding:10px;width:100%;margin-bottom:10px}
+button{padding:12px;width:100%;background:#0088cc;color:#fff;border:none;border-radius:10px}
+</style>
+</head>
+<body>
+
+<h3>Категории</h3>
+<div id="cats"></div>
+
+<input class="search" id="q" placeholder="Поиск...">
+
+<div id="list"></div>
+
+<h3>Добавить объявление</h3>
+<input id="title" placeholder="Название" class="search">
+<input id="price" placeholder="Цена" class="search">
+<textarea id="desc" placeholder="Описание" class="search"></textarea>
+<input type="file" id="img">
+
+<button onclick="add()">💬 Опубликовать</button>
+
+<script>
+const tg = Telegram.WebApp;
+tg.expand();
+const api = "https://your-backend-url/api";
+
+const categories = ["Техника","Одежда","Услуги","Авто","Недвижимость","Другое"];
+
+document.getElementById("cats").innerHTML = categories
+  .map(c => `<span class="cat" onclick="load('${c}')">${c}</span>`).join("");
+
+async function load(cat="") {
+  const q = document.getElementById("q").value;
+  const res = await fetch(`${api}/posts?cat=${cat}&q=${q}`);
+  const data = await res.json();
+
+  document.getElementById("list").innerHTML = data.map(p => `
+    <div class="item" onclick="openPost('${p.id}')">
+      <img src="${p.img}">
+      <b>${p.title}</b><br>
+      ${p.price} ₽
+    </div>
+  `).join("");
+}
+
+function openPost(id){
+  window.location.href = `post.html?id=${id}`;
+}
+
+async function add(){
+  const fd = new FormData();
+  fd.append("title", title.value);
+  fd.append("price", price.value);
+  fd.append("desc", desc.value);
+  fd.append("cat", "Другое");
+  fd.append("user", tg.initDataUnsafe.user.id);
+  fd.append("img", document.getElementById("img").files[0]);
+
+  await fetch(api+"/posts", {method:"POST", body:fd});
+  load();
+}
+
+document.getElementById("q").oninput = () => load();
+load();
+</script>
+
+</body>
+</html>

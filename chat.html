@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Чат</title>
+<meta name="viewport" content="width=device-width">
+<style>
+body{font-family:Arial;padding:20px}
+.msg{background:#ececec;padding:10px;border-radius:8px;margin-bottom:10px}
+.mine{background:#0088cc;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="chat"></div>
+<input id="text" style="width:80%;padding:8px">
+<button onclick="send()">➡</button>
+
+<script>
+const api = "https://your-backend-url/api";
+const user = Telegram.WebApp.initDataUnsafe.user.id;
+const post = new URLSearchParams(location.search).get("with");
+
+async function load(){
+  const res = await fetch(api+"/chat?post="+post+"&user="+user);
+  const data = await res.json();
+
+  document.getElementById("chat").innerHTML = data
+    .map(m => `<div class="msg ${m.user==user?'mine':''}">${m.text}</div>`)
+    .join("");
+}
+
+async function send(){
+  await fetch(api+"/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({user,post,text:text.value})
+  });
+  text.value="";
+  load();
+}
+
+setInterval(load, 1000);
+load();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Объявление</title>
+<meta name="viewport" content="width=device-width">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{font-family:Arial;padding:20px}
+img{width:100%;border-radius:10px}
+</style>
+</head>
+<body>
+
+<div id="content"></div>
+
+<button onclick="chat()">Написать продавцу</button>
+
+<script>
+const tg = Telegram.WebApp;
+const api = "https://your-backend-url/api";
+const id = new URLSearchParams(location.search).get("id");
+
+async function load(){
+  const res = await fetch(api+"/post/"+id);
+  const p = await res.json();
+  document.getElementById("content").innerHTML = `
+    <img src="${p.img}">
+    <h2>${p.title}</h2>
+    <h3>${p.price} ₽</h3>
+    <p>${p.desc}</p>
+  `;
+}
+
+function chat(){
+  window.location.href = "chat.html?with="+id;
+}
+
+load();
+</script>
+
+</body>
+</html>
