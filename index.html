@@ -6,22 +6,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-body{font-family:Arial;margin:0;padding:20px;background:#f7f7f7}
-.item{background:#fff;padding:12px;margin-bottom:15px;border-radius:10px;cursor:pointer}
-.item img{width:100%;border-radius:10px}
-.cat{padding:8px 12px;background:#fff;border-radius:20px;margin-right:10px;display:inline-block;margin-bottom:8px}
-.search{padding:10px;width:100%;margin-bottom:10px}
-button{padding:12px;width:100%;background:#0088cc;color:#fff;border:none;border-radius:10px}
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f2f2f7;
+}
+h3 {
+  margin-bottom: 10px;
+}
+.search {
+  padding: 12px;
+  width: 100%;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+}
+.categories {
+  display: flex;
+  overflow-x: auto;
+  margin-bottom: 15px;
+}
+.cat {
+  padding: 8px 16px;
+  background: #fff;
+  border-radius: 20px;
+  margin-right: 10px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.cat:hover {
+  transform: scale(1.05);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.item {
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.item img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+.item-content {
+  padding: 12px;
+}
+.item-title {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.item-price {
+  color: #FF6B00;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+.item-actions {
+  display: flex;
+  gap: 10px;
+}
+.item-actions button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.item-actions button:hover {
+  opacity: 0.9;
+}
+.call-btn { background: #28a745; }
+.msg-btn { background: #007bff; }
 </style>
 </head>
 <body>
 
 <h3>Категории</h3>
-<div id="cats"></div>
+<div class="categories" id="cats"></div>
 
 <input class="search" id="q" placeholder="Поиск...">
 
-<div id="list"></div>
+<div class="list" id="list"></div>
 
 <h3>Добавить объявление</h3>
 <input id="title" placeholder="Название" class="search">
@@ -34,12 +115,12 @@ button{padding:12px;width:100%;background:#0088cc;color:#fff;border:none;border-
 <script>
 const tg = Telegram.WebApp;
 tg.expand();
-const api = "https://your-backend-url/api";
+const api = "http://localhost:3000/api"; // замени на свой бекенд
 
 const categories = ["Техника","Одежда","Услуги","Авто","Недвижимость","Другое"];
 
 document.getElementById("cats").innerHTML = categories
-  .map(c => `<span class="cat" onclick="load('${c}')">${c}</span>`).join("");
+  .map(c => `<div class="cat" onclick="load('${c}')">${c}</div>`).join("");
 
 async function load(cat="") {
   const q = document.getElementById("q").value;
@@ -47,16 +128,32 @@ async function load(cat="") {
   const data = await res.json();
 
   document.getElementById("list").innerHTML = data.map(p => `
-    <div class="item" onclick="openPost('${p.id}')">
-      <img src="${p.img}">
-      <b>${p.title}</b><br>
-      ${p.price} ₽
+    <div class="item">
+      <img src="${p.img}" onclick="openPost('${p.id}')">
+      <div class="item-content">
+        <div class="item-title">${p.title}</div>
+        <div class="item-price">${p.price} ₽</div>
+        <div class="item-actions">
+          <button class="call-btn" onclick="callUser(event, '${p.user}')">📞 Позвонить</button>
+          <button class="msg-btn" onclick="msgUser(event, '${p.user}')">✉️ Написать</button>
+        </div>
+      </div>
     </div>
   `).join("");
 }
 
 function openPost(id){
   window.location.href = `post.html?id=${id}`;
+}
+
+function callUser(e, userId){
+  e.stopPropagation();
+  alert('Позвонить пользователю: ' + userId);
+}
+
+function msgUser(e, userId){
+  e.stopPropagation();
+  alert('Написать пользователю: ' + userId);
 }
 
 async function add(){
@@ -78,3 +175,4 @@ load();
 
 </body>
 </html>
+
