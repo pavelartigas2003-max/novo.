@@ -36,25 +36,23 @@ h3 {
   cursor: pointer;
   transition: transform 0.2s;
 }
-.cat:hover {
-  transform: scale(1.05);
-}
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
+.cat:hover { transform: scale(1.05); }
+
+.list { display: flex; flex-direction: column; gap: 15px; }
+
 .item {
   background: #fff;
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: grab;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  touch-action: pan-y;
+  position: relative;
 }
-.item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+.item.dragging {
+  transition: none;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
 .item img {
   width: 100%;
@@ -64,20 +62,9 @@ h3 {
 .item-content {
   padding: 12px;
 }
-.item-title {
-  font-weight: bold;
-  font-size: 16px;
-  margin-bottom: 6px;
-}
-.item-price {
-  color: #FF6B00;
-  font-size: 15px;
-  margin-bottom: 10px;
-}
-.item-actions {
-  display: flex;
-  gap: 10px;
-}
+.item-title { font-weight: bold; font-size: 16px; margin-bottom: 6px; }
+.item-price { color: #FF6B00; font-size: 15px; margin-bottom: 10px; }
+.item-actions { display: flex; gap: 10px; }
 .item-actions button {
   flex: 1;
   padding: 10px;
@@ -88,11 +75,22 @@ h3 {
   cursor: pointer;
   transition: opacity 0.2s;
 }
-.item-actions button:hover {
-  opacity: 0.9;
-}
+.item-actions button:hover { opacity: 0.9; }
 .call-btn { background: #28a745; }
 .msg-btn { background: #007bff; }
+
+/* Свайп-индикаторы */
+.swipe-indicator {
+  position: absolute;
+  top: 20px;
+  font-size: 40px;
+  font-weight: bold;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.swipe-right { left: 20px; color: #28a745; }
+.swipe-left { right: 20px; color: #dc3545; }
+
 </style>
 </head>
 <body>
@@ -122,6 +120,7 @@ const categories = ["Техника","Одежда","Услуги","Авто","�
 document.getElementById("cats").innerHTML = categories
   .map(c => `<div class="cat" onclick="load('${c}')">${c}</div>`).join("");
 
+// Загрузка и отображение объявлений
 async function load(cat="") {
   const q = document.getElementById("q").value;
   const res = await fetch(`${api}/posts?cat=${cat}&q=${q}`);
@@ -129,6 +128,8 @@ async function load(cat="") {
 
   document.getElementById("list").innerHTML = data.map(p => `
     <div class="item">
+      <div class="swipe-indicator swipe-left">❌</div>
+      <div class="swipe-indicator swipe-right">❤️</div>
       <img src="${p.img}" onclick="openPost('${p.id}')">
       <div class="item-content">
         <div class="item-title">${p.title}</div>
@@ -140,22 +141,15 @@ async function load(cat="") {
       </div>
     </div>
   `).join("");
+
+  makeSwipeable();
 }
 
-function openPost(id){
-  window.location.href = `post.html?id=${id}`;
-}
+function openPost(id){ window.location.href = `post.html?id=${id}`; }
+function callUser(e, userId){ e.stopPropagation(); alert('Позвонить пользователю: ' + userId); }
+function msgUser(e, userId){ e.stopPropagation(); alert('Написать пользователю: ' + userId); }
 
-function callUser(e, userId){
-  e.stopPropagation();
-  alert('Позвонить пользователю: ' + userId);
-}
-
-function msgUser(e, userId){
-  e.stopPropagation();
-  alert('Написать пользователю: ' + userId);
-}
-
+// Добавление объявления
 async function add(){
   const fd = new FormData();
   fd.append("title", title.value);
@@ -169,10 +163,68 @@ async function add(){
   load();
 }
 
+// Поиск по вводу
 document.getElementById("q").oninput = () => load();
+
+// Свайпы карточек
+function makeSwipeable() {
+  const items = document.querySelectorAll('.item');
+  items.forEach(item => {
+    let startX = 0, currentX = 0, isDragging = false;
+
+    const rightIndicator = item.querySelector('.swipe-right');
+    const leftIndicator = item.querySelector('.swipe-left');
+
+    item.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      isDragging = true;
+      item.classList.add('dragging');
+    });
+
+    item.addEventListener('touchmove', e => {
+      if(!isDragging) return;
+      currentX = e.touches[0].clientX - startX;
+      item.style.transform = `translateX(${currentX}px) rotate(${currentX*0.05}deg)`;
+
+      // Индикаторы свайпа
+      if(currentX > 0) {
+        rightIndicator.style.opacity = Math.min(currentX/100,1);
+        leftIndicator.style.opacity = 0;
+      } else {
+        leftIndicator.style.opacity = Math.min(-currentX/100,1);
+        rightIndicator.style.opacity = 0;
+      }
+    });
+
+    item.addEventListener('touchend', () => {
+      isDragging = false;
+      item.classList.remove('dragging');
+
+      if(currentX > 100) {
+        item.style.transition = 'transform 0.3s ease';
+        item.style.transform = 'translateX(1000px) rotate(15deg)';
+        setTimeout(() => item.remove(), 300);
+        console.log('Лайк карточки!');
+      } else if(currentX < -100) {
+        item.style.transition = 'transform 0.3s ease';
+        item.style.transform = 'translateX(-1000px) rotate(-15deg)';
+        setTimeout(() => item.remove(), 300);
+        console.log('Пропущено!');
+      } else {
+        item.style.transition = 'transform 0.3s ease';
+        item.style.transform = 'translateX(0)';
+      }
+
+      rightIndicator.style.opacity = 0;
+      leftIndicator.style.opacity = 0;
+      currentX = 0;
+    });
+  });
+}
+
+// Инициализация
 load();
 </script>
-
 </body>
 </html>
 
